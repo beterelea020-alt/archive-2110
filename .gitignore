@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.production
+coverage/
+*.log
+.DS_Store
+# Keep the answer key outside the public source repository; upload it through the protected admin panel.
+/private/
+*.tsbuildinfo
