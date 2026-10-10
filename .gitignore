@@ -10,3 +10,5 @@ coverage/
 # Keep the answer key outside the public source repository; upload it through the protected admin panel.
 /private/
 *.tsbuildinfo
+
+archive/
