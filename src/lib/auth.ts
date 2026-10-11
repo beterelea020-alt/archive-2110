@@ -22,17 +22,19 @@ export async function getSession(): Promise<SessionUser | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
+  let id: string | undefined;
   try {
     const { payload } = await jwtVerify(token, secret);
-    const id = payload.sub;
+    id = payload.sub;
     if (!id || typeof payload.role !== "string") return null;
-    const result = await query<SessionUser & { id: string }>(`
-      SELECT u.id, u.name, u.email, u.role, u.team_id AS "teamId",
-             t.name AS "teamName", t.join_code AS "joinCode"
-      FROM users u LEFT JOIN teams t ON t.id = u.team_id WHERE u.id = $1
-    `, [id]);
-    return result.rows[0] ?? null;
   } catch { return null; }
+  // لو قاعدة البيانات فيها مشكلة نخلي الخطأ الحقيقي يظهر (500) بدل ما يبان كأنه 401 «سجّل دخولك».
+  const result = await query<SessionUser & { id: string }>(`
+    SELECT u.id, u.name, u.email, u.role, u.team_id AS "teamId",
+           t.name AS "teamName", t.join_code AS "joinCode"
+    FROM users u LEFT JOIN teams t ON t.id = u.team_id WHERE u.id = $1
+  `, [id]);
+  return result.rows[0] ?? null;
 }
 
 export async function requireUser() {
