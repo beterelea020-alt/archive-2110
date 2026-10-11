@@ -26,9 +26,9 @@ let migration: Promise<void> | null = null;
 function ensureMigrated() {
   if (!migration) {
     migration = (async () => {
-      const col = await pool.query("SELECT 1 FROM information_schema.columns WHERE table_name='chapters' AND column_name='state'");
-      if (col.rowCount) return;
-      const exists = await pool.query("SELECT 1 FROM information_schema.tables WHERE table_name='chapters'");
+      const col = await pool.query("SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='chapters' AND column_name IN ('state','opened_at')");
+      if (col.rowCount === 2) return;
+      const exists = await pool.query("SELECT 1 FROM information_schema.tables WHERE table_schema=current_schema() AND table_name='chapters'");
       if (!exists.rowCount) return;
       await pool.query("ALTER TABLE chapters ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'LOCKED' CHECK (state IN ('LOCKED','OPEN','CLOSED')), ADD COLUMN IF NOT EXISTS opened_at timestamptz");
     })().catch((e) => { console.error("migration failed", e); migration = null; });
