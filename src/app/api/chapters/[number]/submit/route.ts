@@ -11,14 +11,11 @@ export async function POST(request: Request, context: { params: Promise<{number:
     const { number } = await context.params; const chapter = Number(number);
     if (!Number.isInteger(chapter) || chapter < 1 || chapter > 10) return Response.json({ error: "رقم الدور غير صحيح." }, { status: 404 });
     const { answer } = schema.parse(await request.json());
-    const status = await query<{opened:boolean;closed:boolean;title:string}>(`
-      SELECT c.title, c.active AND now() >= ((gs.game_date + c.opens_at) AT TIME ZONE 'Africa/Cairo') AS opened,
-        now() >= ((gs.game_date + c.closes_at) AT TIME ZONE 'Africa/Cairo') AS closed
-      FROM chapters c CROSS JOIN game_settings gs WHERE c.id=$1`, [chapter]);
+    const status = await query<{state:string}>("SELECT state FROM chapters WHERE id=$1", [chapter]);
     const s = status.rows[0];
     if (!s) return Response.json({ error: "الدور غير موجود." }, { status: 404 });
-    if (!s.opened) return Response.json({ error: "هذا الدور لم يُفتح بعد حسب جدول القاهرة." }, { status: 403 });
-    if (s.closed) return Response.json({ error: "انتهت مهلة إرسال الإجابة لهذا الدور." }, { status: 403 });
+    if (s.state === "LOCKED") return Response.json({ error: "هذا الدور لم يفتحه المدير بعد." }, { status: 403 });
+    if (s.state === "CLOSED") return Response.json({ error: "المدير أغلق استلام الإجابات لهذا الدور." }, { status: 403 });
     const existing = await query<{id:string}>("SELECT id FROM submissions WHERE chapter_id=$1 AND team_id=$2", [chapter, user.teamId]);
     const id = existing.rows[0]?.id ?? randomUUID();
     await query(`INSERT INTO submissions(id,chapter_id,team_id,submitted_by,answer) VALUES($1,$2,$3,$4,$5)
