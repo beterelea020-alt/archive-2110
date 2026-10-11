@@ -36,6 +36,10 @@ try {
     opens_at time NOT NULL, closes_at time NOT NULL, active boolean NOT NULL DEFAULT true,
     updated_at timestamptz NOT NULL DEFAULT now(), CHECK (opens_at < closes_at)
   )`);
+  await pool.query("ALTER TABLE chapters ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'LOCKED'");
+  await pool.query("ALTER TABLE chapters ADD COLUMN IF NOT EXISTS opened_at timestamptz");
+  await pool.query("ALTER TABLE chapters DROP CONSTRAINT IF EXISTS chapters_state_check");
+  await pool.query("ALTER TABLE chapters ADD CONSTRAINT chapters_state_check CHECK (state IN ('LOCKED','OPEN','CLOSED'))");
   await pool.query(`CREATE TABLE IF NOT EXISTS submissions (
     id uuid PRIMARY KEY, chapter_id integer NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
     team_id uuid NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
